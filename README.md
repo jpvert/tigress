@@ -16,4 +16,4 @@ install_github("jpvert/tigress")
 ```
 
 Citation:
-A.-C. Haury, F. Mordelet, P. Vera-Licona and J.-P. Vert. TIGRESS: trustful inference of gene regulation using stability selection. BMC systems biology 6(1), 145-153, 2012
+A.-C. Haury, F. Mordelet, P. Vera-Licona and J.-P. Vert. [TIGRESS: trustful inference of gene regulation using stability selection](https://doi.org/10.1186/1752-0509-6-145). BMC systems biology 6(1), 145-153, 2012
