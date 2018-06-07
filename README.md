@@ -7,6 +7,7 @@ TIGRESS formulates GRN inference as a sparse regression problem, and solves it
 with a LARS regression model combined with stability selection. Check reference 
 below for more details.
 
+## Installation
 To install TIGRESS from R, type:
 
 ```{r}
