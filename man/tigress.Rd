@@ -4,24 +4,29 @@
 \alias{tigress}
 \title{Trustful Inference of Gene REgulation using Stability Selection}
 \usage{
-tigress(expdata, tflist = NULL, outfile = "prediction.txt", K = -1,
-  alpha = 0.2, nstepsLARS = 5, split = 100, normalizeexp = TRUE,
+tigress(expdata, tflist = colnames(expdata), targetlist = colnames(expdata),
+  alpha = 0.2, nstepsLARS = 5, nsplit = 100, normalizeexp = TRUE,
   scoring = "area", allsteps = FALSE, verb = FALSE, usemulticore = TRUE)
 }
 \arguments{
-\item{expdata}{Either a matrix of expression, or the name of a file
-containing it. Each row is an experiment, each column a gene. The gene
-names are the column names (or are in the first row of the file).}
+\item{expdata}{A matrix of expression. Each row is an experiment, each column
+a gene. The gene names are the column names.}
 
-\item{tflist}{The list of TFs, or the name of a file containing them. The TF
-name should match the names in the gene list of the expression data file.
-If NULL, then all genes are considered TF (default \code{NULL}).}
+\item{tflist}{The list of TFs names. The TF names should match the names in
+the expression matrix (default: all genes are considered TFs).}
 
-\item{K}{Total number of TF-target predicted edges to return, by decreasing
-SS score. K=0 means that all edges are returned (default \code{0}).}
+\item{targetlist}{The list of targets' names. The targets' names should match
+the names in the expression matrix (default: all genes are considered
+targets).}
+
+\item{alpha}{The \code{alpha} parameter for randomization in stability
+selection. Should be between 0 and 1 (default \code{0.2}).}
 
 \item{nstepsLARS}{Number of LARS steps to perform in stability selection
 (default \code{5}).}
+
+\item{nsplit}{Number of sample splits to perform in stability selection
+(default \code{100})}
 
 \item{normalizeexp}{A boolean indicating whether we should mean center and
 scale to unit variance the expression data for each gene (default
@@ -43,19 +48,11 @@ about what we are doing, otherwise remain silent (default \code{FALSE}).}
 
 \item{usemulticore}{A boolean indicating whether multicore parallel computing
 is used. This requires the package \code{parallel} (default \code{FALSE}).}
-
-\item{outfile.}{A file name where we TF-target predictions are written. If
-empty, do not write anything (default \code{''}).}
-
-\item{nsplit}{Number of sample splits to perform in stability selection
-(default \code{100})}
 }
 \value{
-A dataframe (or list of dataframes if \code{allsteps=TRUE}) with the
-  top \code{K} predicted edges. First column is the TF, second column the
-  target gene, third column the score. If outfile is provided, the result is
-  also written to the file OUTFILE (if allsteps=FALSE) or to several files
-  OUTFILE1, OUTFILE1, ... (if allsteps=TRUE)
+A matrix (or list of matrices if \code{allsteps=TRUE}) with the
+  scores of each TF x target candidate interaction. Each row corresponds to a
+  TF, each column to a target.
 }
 \description{
 This function implements the TIGRESS model of Haury et al. for gene
@@ -63,6 +60,5 @@ regulatory network (GRN) inference from gene expression data. Given a matrix
 of expression data, TIGRESS infers regulation from transcription factor (TFs)
 to any target gene by performing a regression from the TF expression data to
 the target gene expression, and scoring the candidate TFs by a stability
-selection (SS) score. The TF-target pairs are then sorted by decreasing SS
-score.
+selection (SS) score.
 }

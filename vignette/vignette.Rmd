@@ -1,0 +1,32 @@
+---
+title: "Gene regulatory network inference with TIGRESS"
+author: "Jean-Philippe Vert"
+date: "`r Sys.Date()`"
+output: 
+    rmarkdown::html_vignette:
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.show='hold', fig.width=3.4, fig.height=3.4)
+set.seed(4395)
+```
+
+
+## Introduction
+
+`tigress` implements the TIGRESS model of Haury et al. (2012) to infer a gene regulatory network from gene expression data. The input of `tigress` is a matrix of gene expression data, and a list of known transcription factors among the genes. The output is a scoring of all potential regulations from a transcription factor to any gene. To obtain a gene regulatory network, one can just keep regulations with a score above a user-defined threshold. In this vignette we illustrate the use of `tigress` to reconstruct the gene regulatory network of the E. coli bacteria. Before we start, we need to load the `tigress` package:
+```{r}
+library(tigress)
+```
+
+## Data
+
+The `tigress` package comes with a gene expression dataset for E. coli. Each row is a gene, each column an experiment.
+```{r}
+dim(ecoli$exp)
+ecoli$exp[1:5,1:3]
+```

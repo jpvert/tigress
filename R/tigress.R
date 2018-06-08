@@ -5,20 +5,16 @@
 #' of expression data, TIGRESS infers regulation from transcription factor (TFs)
 #' to any target gene by performing a regression from the TF expression data to
 #' the target gene expression, and scoring the candidate TFs by a stability
-#' selection (SS) score. The TF-target pairs are then sorted by decreasing SS
-#' score.
+#' selection (SS) score.
 #'
-#' @param expdata Either a matrix of expression, or the name of a file
-#'   containing it. Each row is an experiment, each column a gene. The gene
-#'   names are the column names (or are in the first row of the file).
-#' @param tflist The list of TFs, or the name of a file containing them. The TF
-#'   name should match the names in the gene list of the expression data file.
-#'   If NULL, then all genes are considered TF (default \code{NULL}).
-#' @param outfile. A file name where we TF-target predictions are written. If
-#'   empty, do not write anything (default \code{''}).
-#' @param K Total number of TF-target predicted edges to return, by decreasing
-#'   SS score. K=0 means that all edges are returned (default \code{0}).
-#' @param alpha The \code{alpha) parameter for randomization in stability
+#' @param expdata A matrix of expression. Each row is an experiment, each column
+#'   a gene. The gene names are the column names.
+#' @param tflist The list of TFs names. The TF names should match the names in
+#'   the expression matrix (default: all genes are considered TFs).
+#' @param targetlist The list of targets' names. The targets' names should match
+#'   the names in the expression matrix (default: all genes are considered
+#'   targets).
+#' @param alpha The \code{alpha} parameter for randomization in stability
 #'   selection. Should be between 0 and 1 (default \code{0.2}).
 #' @param nstepsLARS Number of LARS steps to perform in stability selection
 #'   (default \code{5}).
@@ -41,28 +37,18 @@
 #' @param usemulticore A boolean indicating whether multicore parallel computing
 #'   is used. This requires the package \code{parallel} (default \code{FALSE}).
 #'
-#' @return A dataframe (or list of dataframes if \code{allsteps=TRUE}) with the
-#'   top \code{K} predicted edges. First column is the TF, second column the
-#'   target gene, third column the score. If outfile is provided, the result is
-#'   also written to the file OUTFILE (if allsteps=FALSE) or to several files
-#'   OUTFILE1, OUTFILE1, ... (if allsteps=TRUE)
+#' @return A matrix (or list of matrices if \code{allsteps=TRUE}) with the
+#'   scores of each TF x target candidate interaction. Each row corresponds to a
+#'   TF, each column to a target.
 #'
 #' @export
 tigress <-
-  function(expdata , tflist=NULL , outfile="prediction.txt" , K=-1 , alpha=0.2 , nstepsLARS=5 , split=100 , normalizeexp=TRUE , scoring="area" , allsteps=FALSE , verb=FALSE , usemulticore=TRUE)
+  function(expdata, tflist=colnames(expdata), targetlist=colnames(expdata), alpha=0.2, nstepsLARS=5, nsplit=100, normalizeexp=TRUE, scoring="area", allsteps=FALSE, verb=FALSE, usemulticore=TRUE)
   {
-    #
-    # OUTPUT
-    # A dataframe (or list of dataframes if allsteps=TRUE) with the top K predicted edges. First column is the TF, second column the target gene, third column the score. If outfile is provided, the result is also written to the file OUTFILE (if allsteps=FALSE) or to several files OUTFILE1, OUTFILE1, ... (if allsteps=TRUE)
-
     # Check if we can run multicore
     if (usemulticore) {
       require(parallel)
     }
-
-    # If needed, load expression data
-    if (is.character(expdata))
-      expdata <- read.table(expdata, header=1)
 
     # Gene names
     genenames <- colnames(expdata)
@@ -71,16 +57,6 @@ tigress <-
     # Normalize expression data for each gene
     if (normalizeexp)
       expdata <- scale(expdata)
-
-    # If needed, load TF list
-    if (is.null(tflist)) {
-      # No TF list or file provided, we take all genes as TF
-      tflist <- genenames
-    } else if (length(tflist)==1 && is.na(match(tflist,genenames))) {
-      # If this is a single string which is not a gene name, then it should be a file name
-      tflist <- read.table(tflist , header=0)
-      tflist <- as.matrix(tflist)[,1]
-    }
 
     # Make sure there are no more steps than variables
     if (nstepsLARS>length(tflist)-1){
@@ -96,10 +72,12 @@ tigress <-
       stop('Error: could not find all TF in the gene list!')
     }
 
-    # Number of predictions to return
-    Kmax <- ntf*ngenes
-    if (K==-1) K<-Kmax
-    K <- min(K,Kmax)
+    # Locate targets in gene list by matching their names
+    ntargets <- length(targetlist)
+    targetindices <- match(targetlist,genenames)
+    if (max(is.na(targetindices))) {
+      stop('Error: could not find all targets in the gene list!')
+    }
 
     # Prepare scoring matrix
     if (allsteps) {
@@ -116,10 +94,10 @@ tigress <-
       }
 
       # Name of the target gene
-      targetname <- genenames[itarget]
+      targetname <- targetlist[itarget]
       # Find the TF to be used for prediction (all TF except the target if the target is itself a TF)
-      predTF <- tfindices[!match(tflist,targetname,nomatch=0)]
-      r <- stabilityselection(as.matrix(expdata[,predTF]), as.matrix(expdata[,itarget]), nsplit=nsplit, nsteps=nstepsLARS, alpha=alpha)
+      predTF <- !match(tflist,targetname,nomatch=0)
+      r <- stabilityselection(as.matrix(expdata[,tfindices[predTF]]), as.matrix(expdata[,targetname]), nsplit=nsplit, nsteps=nstepsLARS, alpha=alpha)
       sc <- array(0,dim=c(ntf,scorestokeep),dimnames = list(tflist,seq(scorestokeep)))
       if (allsteps) {
         sc[predTF,] <- t(r)
@@ -131,32 +109,24 @@ tigress <-
 
     # Treat target genes one by one
     if (usemulticore) {
-      score <- mclapply(seq(ngenes),stabselonegene,mc.cores=detectCores()-1)
+      score <- mclapply(seq(ntargets),stabselonegene,mc.cores=detectCores()-1)
     } else {
-      score <- lapply(seq(ngenes),stabselonegene)
+      score <- lapply(seq(ntargets),stabselonegene)
     }
     # Rank scores
     edgepred <- list()
     for (i in seq(scorestokeep)) {
       # Combine all scores in a single vectors
-      myscore <- unlist(lapply(score,function(x) x[,1,drop=FALSE]))
-      ranki <- order(myscore,decreasing=TRUE)[1:K]
-      edgepred[[i]] <- data.frame(list(tf=tflist[(ranki-1)%%ntf+1] , target=genenames[(ranki-1)%/%ntf+1] , score=myscore[ranki]))
+      edgepred[[i]] <- matrix(unlist(lapply(score,function(x) x[,i,drop=FALSE])), nrow=ntf)
+      rownames(edgepred[[i]]) <- tflist
+      colnames(edgepred[[i]]) <- targetlist
     }
 
-    # Print and return the result
+    # Return the result
     if (allsteps) {
-      if (nchar(outfile)>0) {
-        for (i in seq(length(edgepred))) {
-          write.table( edgepred[[i]], file=paste(outfile,i,sep=''), quote=FALSE, row.names=FALSE, col.names=FALSE, sep='\t')
-        }
-      }
       return(edgepred)
     } else {
-      if (nchar(outfile)>0) {
-        write.table( edgepred[[1]], file=outfile, quote=FALSE, row.names=FALSE, col.names=FALSE, sep='\t')
-      }
-      return(edgepred[[1]])
+      return(edgepred[[nstepsLARS]])
     }
   }
 
