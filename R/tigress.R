@@ -31,19 +31,19 @@
 #' @param allsteps A boolean indicating whether we should output the solutions
 #'   for all values of LARS steps up to nstepsLARS, or only for nstepsLARS. It
 #'   does not cost more computation to compute all solutions (default
-#'   \code{FALSE}).
+#'   \code{TRUE}).
 #' @param verb A boolean indicating verbose mode. If \code{TRUE}, print messages
 #'   about what we are doing, otherwise remain silent (default \code{FALSE}).
 #' @param usemulticore A boolean indicating whether multicore parallel computing
 #'   is used. This requires the package \code{parallel} (default \code{FALSE}).
 #'
-#' @return A matrix (or list of matrices if \code{allsteps=TRUE}) with the
-#'   scores of each TF x target candidate interaction. Each row corresponds to a
-#'   TF, each column to a target.
+#' @return A list of matrices (or a single matrix if \code{allsteps=FALSE}) with
+#'   the scores of each TF x target candidate interaction. Each row corresponds
+#'   to a TF, each column to a target.
 #'
 #' @export
 tigress <-
-  function(expdata, tflist=colnames(expdata), targetlist=colnames(expdata), alpha=0.2, nstepsLARS=5, nsplit=100, normalizeexp=TRUE, scoring="area", allsteps=FALSE, verb=FALSE, usemulticore=TRUE)
+  function(expdata, tflist=colnames(expdata), targetlist=colnames(expdata), alpha=0.2, nstepsLARS=5, nsplit=100, normalizeexp=TRUE, scoring="area", allsteps=TRUE, verb=FALSE, usemulticore=TRUE)
   {
     # Check if we can run multicore
     if (usemulticore) {

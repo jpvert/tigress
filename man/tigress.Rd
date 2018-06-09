@@ -6,7 +6,7 @@
 \usage{
 tigress(expdata, tflist = colnames(expdata), targetlist = colnames(expdata),
   alpha = 0.2, nstepsLARS = 5, nsplit = 100, normalizeexp = TRUE,
-  scoring = "area", allsteps = FALSE, verb = FALSE, usemulticore = TRUE)
+  scoring = "area", allsteps = TRUE, verb = FALSE, usemulticore = TRUE)
 }
 \arguments{
 \item{expdata}{A matrix of expression. Each row is an experiment, each column
@@ -41,7 +41,7 @@ Bühlmann in the original paper (default \code{"area"}).}
 \item{allsteps}{A boolean indicating whether we should output the solutions
 for all values of LARS steps up to nstepsLARS, or only for nstepsLARS. It
 does not cost more computation to compute all solutions (default
-\code{FALSE}).}
+\code{TRUE}).}
 
 \item{verb}{A boolean indicating verbose mode. If \code{TRUE}, print messages
 about what we are doing, otherwise remain silent (default \code{FALSE}).}
@@ -50,9 +50,9 @@ about what we are doing, otherwise remain silent (default \code{FALSE}).}
 is used. This requires the package \code{parallel} (default \code{FALSE}).}
 }
 \value{
-A matrix (or list of matrices if \code{allsteps=TRUE}) with the
-  scores of each TF x target candidate interaction. Each row corresponds to a
-  TF, each column to a target.
+A list of matrices (or a single matrix if \code{allsteps=FALSE}) with
+  the scores of each TF x target candidate interaction. Each row corresponds
+  to a TF, each column to a target.
 }
 \description{
 This function implements the TIGRESS model of Haury et al. for gene
