@@ -13,6 +13,7 @@ vignette: >
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.show='hold', fig.width=3.4, fig.height=3.4)
 set.seed(4395)
+library(ROCR)
 ```
 
 
@@ -29,4 +30,66 @@ The `tigress` package comes with a gene expression dataset for E. coli. Each row
 ```{r}
 dim(ecoli$exp)
 ecoli$exp[1:5,1:3]
+genenames <- rownames(ecoli$exp)
+```
+We also have a set of known regulatory interactions between transcription factors and their targets. It is stored in a matrix with two columns, where each row represents an interaction. The first column is the index of the transcription factor, the second column is the index of the target gene. Indices refer to the row number in the expression matrix.
+```{r}
+nreg <- nrow(ecoli$reg)
+ecoli$reg[1:5,]
+```
+From this known network we extract the names of TFs and targets, that we will try to recover using TIGRESS.
+```{r}
+tfindices <- sort(unique(ecoli$reg[,1]))
+tfnames <- genenames[tfindices]
+ntf <- length(tfindices)
+ntf
+targetindices <- sort(unique(ecoli$reg[,2]))
+targetnames <- genenames[targetindices]
+ntarget <- length(targetindices)
+ntarget
+```
+
+## Run TIGRESS
+To infer a gene network from a matrix of expression, we use the `tigress` function. We provide the expression matrix as `t(ecoli$exp)`, because `tigress` requires the genes in rows and not in colunms. We also provide the list of TFs and targets, and a few additional parameters of TIGRESS: the maximum number of LARS step `nstepsLARS`, the fact that we want to get the solutions for all values of the LARS step from 1 to `nstepsLARS`, and the number of bootstrap splits.
+```{r}
+nstepsLARS = 20
+edgepred <- tigress(t(ecoli$exp), tflist=tfnames, targetlist=targetnames, nstepsLARS = nstepsLARS, allsteps=TRUE, nsplit=1000)
+```
+The results is matrix where each row is a TF, each column is a candidate target gene, and the value in the matrix can be interpreted as a probability that there is a regulation between each TF and each target gene.
+
+To evaluate the performance of the prediction, we compare it to the known regulatory network.
+```{r}
+truereg <- matrix(0,ntf,ntarget)
+for (i in seq(nreg)) {
+	truereg[match(ecoli$reg[i,1],tfindices),match(ecoli$reg[i,2],targetindices)]=1
+	rownames(truereg) <- tfnames
+	colnames(truereg) <- targetnames
+}
+```
+Let us now measure the performance. We exclude self-regulation in the evaluation, since they are not predicted by TIGRESS.
+```{r}
+# Detect tf in targets
+tfintargets <- intersect(tfindices,targetindices)
+# Indices of the possible self-regulations (target=tf) in the tf*targets matrix
+selfregindices <- match(tfintargets,tfindices) + ntf*(match(tfintargets,targetindices)-1)
+keepindices <- setdiff(seq(ntf*ntarget), selfregindices)
+```
+Let us first check the influence of the number of LARS steps in the performance, for example on the AUC
+```{r}
+auc <- numeric(nstepsLARS)
+for (i in seq(nstepsLARS)) {
+  pred <- prediction(edgepred[[i]][keepindices], truereg[keepindices])
+  auc[i] <- performance(pred, measure = "auc")@y.values
+}
+plot(unlist(auc), xlab="Number of LARS steps", ylab="AUC", type='b', lwd=2, main="TIGRESS performance") ; grid()
+```
+
+We can also visualize the ROC and precision-recall curve for a particular number of step size:
+```{r}
+bestL <- which.max(unlist(auc))
+pred <- prediction(edgepred[[bestL]][keepindices], truereg[keepindices])
+roc <- performance(pred, measure = "tpr", x.measure = "fpr")
+pre <- performance(pred, measure = "prec", x.measure = "rec") 
+plot(roc, lwd=2, main = paste("ROC curve with nstepsLARS =", bestL)); grid() ; abline(0,1)
+plot(pre, lwd=2, main = paste("Precision-recall curve with nstepsLARS =", bestL)); grid()
 ```
