@@ -126,7 +126,7 @@ tigress <-
     if (allsteps) {
       return(edgepred)
     } else {
-      return(edgepred[[nstepsLARS]])
+      return(edgepred[[1]])
     }
   }
 

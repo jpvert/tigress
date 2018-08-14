@@ -6,7 +6,7 @@
 \usage{
 tigress(expdata, tflist = colnames(expdata), targetlist = colnames(expdata),
   alpha = 0.2, nstepsLARS = 5, nsplit = 100, normalizeexp = TRUE,
-  scoring = "area", allsteps = TRUE, verb = FALSE, usemulticore = TRUE)
+  scoring = "area", allsteps = TRUE, verb = FALSE, usemulticore = FALSE)
 }
 \arguments{
 \item{expdata}{A matrix of expression. Each row is an experiment, each column
