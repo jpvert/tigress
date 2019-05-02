@@ -6,6 +6,7 @@ Author: Jean-Philippe Vert
 Maintainer: Jean-Philippe Vert <jean-philippe.vert@m4x.org>
 Description: This package implements the TIGRESS method for gene regulatory network inference from gene expression date
 Depends: lars
+Suggests: foreach
 License: Artistic-2.0
 Encoding: UTF-8
 LazyData: true
