@@ -109,7 +109,15 @@ tigress <-
 
     # Treat target genes one by one
     if (usemulticore) {
-      score <- mclapply(seq(ntargets),stabselonegene,mc.cores=detectCores()-1)
+      if (requireNamespace("foreach") && foreach::getDoParRegistered()) {
+          `%dopar%` = foreach::`%dopar%`
+          score <- foreach::foreach(i=seq(ntargets), .packages=c("tigress", "lars"),
+                    .export=c("targetlist", "tflist", "tfindices", "expdata",
+                              "verb", "nsplit", "nstepsLARS", "alpha", "ntf",
+                              "scorestokeep", "allsteps")) %dopar% stabselonegene(i)
+      } else {
+        score <- mclapply(seq(ntargets),stabselonegene,mc.cores=detectCores()-1)
+      }
     } else {
       score <- lapply(seq(ntargets),stabselonegene)
     }
